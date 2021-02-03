@@ -6,7 +6,6 @@ require (
 	github.com/apparentlymart/go-textseg v1.0.0
 	github.com/creachadair/jrpc2 v0.11.1
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/gammazero/workerpool v1.1.1
 	github.com/google/go-cmp v0.5.4
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-multierror v1.1.0
@@ -27,3 +26,5 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vektra/mockery/v2 v2.6.0
 )
+
+replace github.com/creachadair/jrpc2 => github.com/radeksimko/jrpc2 v0.11.3-0.20210203203548-fd775e77d5ec

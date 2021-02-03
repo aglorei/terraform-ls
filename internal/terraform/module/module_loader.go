@@ -17,6 +17,7 @@ type moduleLoader struct {
 	logger             *log.Logger
 	tfExecOpts         *exec.ExecutorOpts
 	opsToDispatch      chan ModuleOperation
+	reportProgress     ProgressReporterFunc
 
 	loadingCount     *int64
 	prioLoadingCount *int64
@@ -131,12 +132,24 @@ func (ml *moduleLoader) nonPrioCapacity() int64 {
 	return ml.prioParallelism - atomic.LoadInt64(ml.loadingCount)
 }
 
+func (ml *moduleLoader) SetProgressReporter(f ProgressReporterFunc) {
+	ml.reportProgress = f
+}
+
 func (ml *moduleLoader) executeModuleOp(ctx context.Context, modOp ModuleOperation) {
 	ml.logger.Printf("executing %q for %s", modOp.Type, modOp.Module.Path())
-	// TODO: Report progress in % for each op based on queue length
-	defer ml.logger.Printf("finished %q for %s", modOp.Type, modOp.Module.Path())
-	defer modOp.markAsDone()
-	defer ml.tryDispatchingModuleOp()
+	if ml.reportProgress != nil {
+		ml.reportProgress(ctx, modOp, OpStateLoading)
+	}
+
+	defer func(ml *moduleLoader, modOp ModuleOperation) {
+		ml.logger.Printf("finished %q for %s", modOp.Type, modOp.Module.Path())
+		modOp.markAsDone()
+		if ml.reportProgress != nil {
+			ml.reportProgress(ctx, modOp, OpStateLoaded)
+		}
+		ml.tryDispatchingModuleOp()
+	}(ml, modOp)
 
 	switch modOp.Type {
 	case OpTypeGetTerraformVersion:
@@ -191,6 +204,10 @@ func (ml *moduleLoader) EnqueueModuleOp(modOp ModuleOperation) {
 	}
 
 	ml.queue.PushOp(modOp)
+
+	if ml.reportProgress != nil {
+		ml.reportProgress(context.Background(), modOp, OpStateQueued)
+	}
 
 	ml.tryDispatchingModuleOp()
 }

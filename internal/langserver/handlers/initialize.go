@@ -181,6 +181,11 @@ func (lh *logHandler) Initialize(ctx context.Context, params lsp.InitializeParam
 		return nil
 	})
 
+	jrpc2.PushNotify(ctx, "window/logMessage", &lsp.LogMessageParams{
+		Type:    lsp.Info,
+		Message: "Lorem Ipsum dolor sit amet",
+	})
+
 	return serverCaps, err
 }
 
